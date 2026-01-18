@@ -1,0 +1,25 @@
+name: Python EB CI/CD
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: 
+        aws-secret-access-key: 
+        aws-region: us-east-1
+
+    - name: Start CodeBuild
+      run: |
+        aws codebuild start-build \
+          --project-name python-eb-codebuild
