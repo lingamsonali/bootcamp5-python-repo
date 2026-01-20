@@ -21,7 +21,7 @@ jobs:
 
       # 2. Fetch build artifact from S3
       - name: Fetch Artifact from S3
-        run: aws s3 cp "s3://inspection-frontend/codebuild/MyArtifact.zip" "./deploy-package.zip"
+        run: aws s3 cp "s3://inspection-frontend/MyArtifact.zip./bootcamp-5project" "./deploy-package.zip"
         
       # 3. Identify which environment is currently LIVE
       - name: Identify Target Environment
