@@ -27,7 +27,7 @@ jobs:
       - name: Identify Target Environment
         id: info
         run: |
-          CURRENT_TG=$(aws elbv2 describe-rules --listener-arn ${{ secrets.ALB_LISTENER_ARN }} --query "Rules[].Actions[].ForwardConfig.TargetGroups[?Weight==\`100\`].TargetGroupArn" --output text)
+          CURRENT_TG=$(aws elbv2 describe-rules --listener-arn ${{ secrets.ALB_LISTENER_ARN }} --query "Rules[].Actions[].ForwardConfig.TargetGroups" --output json | jq -r 'max_by(.Weight).TargetGroupArn')
 
           if [ -z "$CURRENT_TG" ]; then
             echo "ERROR: No active target group found"
