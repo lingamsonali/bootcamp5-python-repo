@@ -1,0 +1,73 @@
+name: CI/CD Blue-Green Deployment
+
+on:
+  workflow_dispatch: # Manual trigger for deployment
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      # 1. Download the compiled artifact from S3
+      - name: Fetch Artifact from S3
+        run: |
+          aws s3 cp s3://inspection-frontend/codebuild/MyArtifact.zip ./deploy-package.zip
+
+   #env not to live until deployment
+      - name: Identify Target Environment
+        id: info  
+        run: |
+   # Get the Target Group currently receiving 100% traffic from the ALB
+          CURRENT_TG=$(aws elbv2 describe-rules --listener-arn ${{ secrets.ALB_LISTENER_ARN }} --query "Rules[0].Actions[0].ForwardConfig.TargetGroups[?Weight==\`100\`].TargetGroupArn" --output text)
+          if [ "$CURRENT_TG" == "${{ secrets.BLUE_TG_ARN }}" ]; then
+          echo "target_env=bootcamp-project-green" >> $GITHUB_OUTPUT
+          echo "target_tg=${{ secrets.GREEN_TG_ARN }}" >> $GITHUB_OUTPUT
+          else
+          echo "target_env=bootcamp-project-blue" >> $GITHUB_OUTPUT
+          echo "target_tg=${{ secrets.BLUE_TG_ARN }}" >> $GITHUB_OUTPUT
+          fi
+      - name: Deploy to Target Environment
+        run: |
+          VERSION_LABEL="deploy-${{ github.run_id }}"
+          
+          aws elasticbeanstalk create-application-version \
+            --application-name "bootcamp5-project" \
+            --version-label $VERSION_LABEL \
+            --source-bundle S3Bucket="${{ secrets.S3_BUCKET_NAME }}",S3Key="builds/latest-build.zip"
+
+          aws elasticbeanstalk update-environment \
+            --environment-name ${{ steps.info.outputs.target_env }} \
+            --version-label $VERSION_LABEL
+      - name: Health Check
+        run: |
+          echo "Waiting for ${{ steps.info.outputs.target_env }} to turn Green..."
+          aws elasticbeanstalk wait environment-updated --environment-names ${{ steps.info.outputs.target_env }}
+          
+          STATUS=$(aws elasticbeanstalk describe-environments --environment-names ${{ steps.info.outputs.target_env }} --query "Environments[0].Health" --output text)
+          if [ "$STATUS" != "Green" ]; then
+            echo "Deployment failed: Environment is $STATUS"
+            exit 1
+          fi
+
+      # 5. THE SWITCH: Update ALB Listener Rule (Weight Swap)
+      - name: Swap Traffic to New Environment
+        run: |
+          aws elbv2 modify-rule \
+            --rule-arn ${{ secrets.ALB_RULE_ARN }} \
+            --actions '[{
+              "Type": "forward",
+              "ForwardConfig": {
+                "TargetGroups": [{
+                  "TargetGroupArn": "${{ steps.info.outputs.target_tg }}",
+                  "Weight": 100
+                }]
+              }
+            }]'    
