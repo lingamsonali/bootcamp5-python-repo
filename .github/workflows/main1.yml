@@ -50,7 +50,7 @@ jobs:
           aws elasticbeanstalk create-application-version \
             --application-name bootcamp5-project \
             --version-label $VERSION_LABEL \
-            --source-bundle S3Bucket = inspection-frontend,S3Key="codebuild/MyArtifact.zip/"
+            --source-bundle S3Bucket=inspection-frontend,S3Key="codebuild/MyArtifact.zip/"
 
           aws elasticbeanstalk update-environment \
             --environment-name ${{ steps.info.outputs.target_env }} \
