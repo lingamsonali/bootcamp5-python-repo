@@ -22,7 +22,7 @@ jobs:
       # 2. Fetch build artifact from S3
       - name: Fetch Artifact from S3
         run: |
-          aws s3 cp s3://${{ secrets.S3_BUCKET_NAME }}/codebuild/MyArtifact.zip deploy-package.zip
+          aws s3 cp s3://${{ secrets.S3_BUCKET_NAME }}/codebuild/MyArtifact.zip ./deploy-package.zip
 
       # 3. Identify which environment is currently LIVE
       - name: Identify Target Environment
