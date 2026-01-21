@@ -21,7 +21,7 @@ jobs:
 
       # 2. Fetch build artifact from S3
       - name: Fetch Artifact from S3
-        run: aws s3 cp  "s3://inspection-frontend/MyArtifact.zip./" "./deploy-package" --recursive
+        run: aws s3 cp  "s3://inspection-frontend/builds/latest-build.zip" "./deploy-package" 
         
       # 3. Identify which environment is currently LIVE
       - name: Identify Target Environment
@@ -50,7 +50,7 @@ jobs:
           aws elasticbeanstalk create-application-version \
             --application-name bootcamp5-project \
             --version-label $VERSION_LABEL \
-            --source-bundle S3Bucket=inspection-frontend,S3Key="codebuild/MyArtifact.zip/"
+            --source-bundle S3Bucket=inspection-frontend,S3Key="builds/latest-build.zip"
 
           aws elasticbeanstalk update-environment \
             --environment-name ${{ steps.info.outputs.target_env }} \
