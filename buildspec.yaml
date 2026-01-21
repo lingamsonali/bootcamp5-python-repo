@@ -5,25 +5,14 @@ phases:
     runtime-versions:
       python: 3.11
     commands:
-      - echo "Installing dependencies"
       - pip install --upgrade pip
       - pip install -r requirements.txt
-
-  pre_build:
-    commands:
-      - echo "Preparing build artifact"
-      - rm -f latest-build.zip
-
   build:
     commands:
-      - echo "Zipping application"
-      - zip -r latest-build.zip .
-
+      - echo "Build phase completed"
   post_build:
     commands:
-      - echo "Uploading artifact to S3"
-      - aws s3 cp latest-build.zip s3://inspection-frontend/builds/latest-build.zip
-
+      - echo "Post-build phase completed"
 artifacts:
   files:
-    - latest-build.zip
+    - '**/*'
