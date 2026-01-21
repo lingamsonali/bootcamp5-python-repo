@@ -3,13 +3,27 @@ version: 0.2
 phases:
   install:
     runtime-versions:
-      python: 3.9
+      python: 3.11
     commands:
-      - pip install -r requirements.txt -t .
+      - echo "Installing dependencies"
+      - pip install --upgrade pip
+      - pip install -r requirements.txt
+
+  pre_build:
+    commands:
+      - echo "Preparing build artifact"
+      - rm -f latest-build.zip
+
   build:
     commands:
-      - echo "Build completed"
+      - echo "Zipping application"
+      - zip -r latest-build.zip .
+
+  post_build:
+    commands:
+      - echo "Uploading artifact to S3"
+      - aws s3 cp latest-build.zip s3://inspection-frontend/builds/latest-build.zip
 
 artifacts:
   files:
-    - '**/*'
+    - latest-build.zip
