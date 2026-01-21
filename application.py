@@ -1,10 +1,10 @@
-from flask import Flask
+from flask import Flask, render_template
 
-application = Flask(__name__)
+app = Flask(__name__)
 
-@application.route("/")
+@app.route("/")
 def home():
-    return "Elastic Beanstalk Python App is running bootcampproject5!"
+    return render_template("index.html")
 
 if __name__ == "__main__":
-    application.run()
+    app.run(debug=True)
