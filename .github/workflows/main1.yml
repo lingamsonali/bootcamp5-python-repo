@@ -21,7 +21,7 @@ jobs:
 
       # 2. Fetch build artifact from S3
       - name: Fetch Artifact from S3
-        run: aws s3 cp  "https://inspection-frontend.s3.us-east-1.amazonaws.com/final/latest-build.zip" "./deploy-package" 
+        run: aws s3 cp  "s3://inspection-frontend/final/latest-build.zip" "./deploy-package" 
         
       # 3. Identify which environment is currently LIVE
       - name: Identify Target Environment
