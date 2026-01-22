@@ -45,7 +45,7 @@ jobs:
       # 4. Deploy new version to the inactive environment
       - name: Deploy to Target Environment
         run: |
-          VERSION_LABEL="deploy-${{ github.run_id }}"
+          VERSION_LABEL="sample-deploy-${{ github.run_id }}"
 
           aws elasticbeanstalk create-application-version \
             --application-name bootcamp5-project \
