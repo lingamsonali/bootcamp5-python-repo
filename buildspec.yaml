@@ -11,11 +11,15 @@ phases:
   pre_build:
     commands:
       - echo "Running pre-build checks..."
+      # Ensure your application.py exists
+      - if [ ! -f application.py ]; then echo "Error: application.py not found!"; exit 1; fi
+      - echo "application.py found."
 
   build:
     commands:
       - echo "Packaging application..."
-      - zip -r app.zip * -x "*.git*" "*.DS_Store*" "buildspec.yml" "*.zip"
+      # Exclude unnecessary files from zip
+      - zip -r app.zip * -x "*.git*" "*.DS_Store*" "buildspec.yml" "*.zip" "*.sh"
 
 artifacts:
   files:
