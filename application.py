@@ -1,13 +1,19 @@
-from flask import Flask, render_template
+from flask import Flask, jsonify, render_template
+import os
 
-# AWS EB looks for 'application' variable by default
-application = Flask(__name__)
-app = application 
+app = Flask(__name__)
 
+# Health check route for ALB
+@app.route("/health")
+def health():
+    return jsonify({"status": "healthy"}), 200
+
+# Main route
 @app.route("/")
-def home():
-    # Flask automatically looks inside the /templates folder
+def index():
     return render_template("index.html")
 
 if __name__ == "__main__":
-    application.run(debug=True)
+    port = int(os.environ.get("PORT", 80))  # Use PORT from EB env or default 80
+    app.run(host="0.0.0.0", port=port)
+
