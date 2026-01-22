@@ -5,25 +5,28 @@ phases:
     runtime-versions:
       python: 3.10
     commands:
-      - echo "No dependencies to install for app.py"
+      - echo "Upgrading pip..."
       - pip install --upgrade pip
+      - echo "Installing dependencies from requirements.txt..."
+      - if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
   pre_build:
     commands:
       - echo "Running pre-build checks..."
       - |
-        if [ ! -f app.py ]; then
-          echo "Error: app.py not found!"
+        if [ ! -f application.py ]; then
+          echo "Error: application.py not found!"
           exit 1
         else
-          echo "app.py found."
+          echo "application.py found."
         fi
 
   build:
     commands:
-      - echo "Packaging application..."
+      - echo "Packaging Flask application..."
       - zip -r app.zip * -x "*.git*" "*.DS_Store*" "buildspec.yml" "*.zip" "*.sh"
 
 artifacts:
   files:
     - app.zip
+
