@@ -1,0 +1,80 @@
+name: CI/CD Blue-Green Deployment
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Configure AWS credentials
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      # 2. Fetch build artifact from S3
+      - name: Fetch Artifact from S3
+        run: aws s3 cp  "s3://inspection-frontend/codebuild/MyArtifact.zip./bootcamp-5project" "./deploy-package" 
+        
+      # 3. Identify which environment is currently LIVE
+      - name: Identify Target Environment
+        id: info
+        run: |
+          CURRENT_TG=$(aws elbv2 describe-rules --listener-arn ${{ secrets.ALB_LISTENER_ARN }} --query "Rules[].Actions[].ForwardConfig.TargetGroups" --output json | jq -r 'flatten | max_by(.Weight) | .TargetGroupArn')
+          if [ -z "$CURRENT_TG" ]; then
+            echo "ERROR: No active target group found"
+            exit 1
+          fi
+          if [ "$CURRENT_TG" = "${{ secrets.BLUE_TG_ARN }}" ]; then
+            echo "target_env=bootcamp-project-green" >> $GITHUB_OUTPUT
+            echo "target_tg=${{ secrets.GREEN_TG_ARN }}" >> $GITHUB_OUTPUT
+          else
+            echo "target_env=bootcamp-project-blue" >> $GITHUB_OUTPUT
+            echo "target_tg=${{ secrets.BLUE_TG_ARN }}" >> $GITHUB_OUTPUT
+          fi
+      # 4. Deploy new version to the inactive environment
+      - name: Deploy to Target Environment
+        run: |
+          VERSION_LABEL="sample-deploy-${{ github.run_id }}"
+          aws elasticbeanstalk create-application-version \
+            --application-name bootcamp5-project \
+            --version-label $VERSION_LABEL \
+            --source-bundle S3Bucket=inspection-frontend,S3Key="codebuild/MyArtifact.zip./bootcamp-5project"
+          aws elasticbeanstalk update-environment \
+            --environment-name ${{ steps.info.outputs.target_env }} \
+            --version-label $VERSION_LABEL
+      # 5. Wait and verify environment health
+      - name: Health Check
+        run: |
+          aws elasticbeanstalk wait environment-updated \
+            --environment-names ${{ steps.info.outputs.target_env }}
+          STATUS=$(aws elasticbeanstalk describe-environments \
+            --environment-names ${{ steps.info.outputs.target_env }} \
+            --query "Environments[0].Health" \
+            --output text)
+          echo "Environment health: $STATUS"
+          if [ "$STATUS" != "Green" ]; then
+            echo "Deployment failed: Environment health is $STATUS"
+            exit 1
+          fi
+      # 6. Switch ALB traffic to the new environment
+      - name: Swap Traffic to New Environment
+        run: |
+          aws elbv2 modify-rule \
+            --rule-arn ${{ secrets.ALB_RULE_ARN }} \
+            --actions '[{
+              "Type": "forward",
+              "ForwardConfig": {
+                "TargetGroups": [{
+                  "TargetGroupArn": "${{ steps.info.outputs.target_tg }}",
+                  "Weight": 100
+                }]
+              }
+            }]'
