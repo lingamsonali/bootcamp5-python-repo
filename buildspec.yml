@@ -5,9 +5,8 @@ phases:
     runtime-versions:
       python: 3.10
     commands:
-      - echo "Installing dependencies..."
+      - echo "No dependencies to install for application.py"
       - pip install --upgrade pip
-      - pip install -r requirements.txt
 
   pre_build:
     commands:
