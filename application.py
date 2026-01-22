@@ -1,19 +1,16 @@
-from flask import Flask, jsonify, render_template
+import http.server
+import socketserver
 import os
 
-app = Flask(__name__)
+PORT = int(os.environ.get("PORT", 80))  # EB sets this environment variable
 
-# Health check route for ALB
-@app.route("/health")
-def health():
-    return jsonify({"status": "healthy"}), 200
+class Handler(http.server.SimpleHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header("Content-type", "text/plain")
+        self.end_headers()
+        self.wfile.write(b"Hello, Elastic Beanstalk without Flask!")
 
-# Main route
-@app.route("/")
-def index():
-    return render_template("index.html")
-
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 80))  # Use PORT from EB env or default 80
-    app.run(host="0.0.0.0", port=port)
-
+with socketserver.TCPServer(("", PORT), Handler) as httpd:
+    print(f"Serving on port {PORT}")
+    httpd.serve_forever()
