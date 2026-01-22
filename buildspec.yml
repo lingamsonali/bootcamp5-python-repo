@@ -1,6 +1,5 @@
 version: 0.2
 
-# Install dependencies and runtime
 phases:
   install:
     runtime-versions:
@@ -13,23 +12,12 @@ phases:
   pre_build:
     commands:
       - echo "Running pre-build checks..."
-      # Optional: run tests if you have any
-      # - pytest
 
   build:
     commands:
       - echo "Packaging application..."
       - zip -r app.zip * -x "*.git*" "*.DS_Store*" "buildspec.yml" "*.zip"
 
-  post_build:
-    commands:
-      - echo "Build completed successfully!"
-      - echo "Uploading artifact to S3..."
-      - aws s3 cp app.zip s3://my-flask-builds/app.zip
-
-# Artifacts to be uploaded (redundant if using post_build AWS CLI)
 artifacts:
   files:
     - app.zip
-  discard-paths: yes
-  base-directory: .
